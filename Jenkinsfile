@@ -51,14 +51,23 @@ pipeline {
         }
         stage('Update K8s Manifest') {
             steps {
-                sh '''
-                sed -i "s|IMAGE_TAG|$BUILD_NUMBER|g" k8s/deployment.yaml
-                git config --global user.email "nearby424@gmail.com"
-                git config --global user.name "nearby424-oss"
-                git add .
-                git commit -m "Update image tag"
-                git push
-                '''
+            withCredentials([usernamePassword(
+            credentialsId: 'github-creds',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PASS'
+        )]) {
+
+            sh '''
+            sed -i "s|IMAGE_TAG|'"$BUILD_NUMBER"'|g" k8s/deployment.yaml
+
+            git config --global user.email "nearby424@gmail.com"
+            git config --global user.name "nearby424-oss"
+
+            git add k8s/deployment.yaml
+            git commit -m "Update image tag to '"$BUILD_NUMBER"'" || echo "No changes to commit"
+
+            git push https://$GIT_USER:$GIT_PASS@github.com/nearby424-oss/Nodejs-app.git main
+            '''
             }
         }
         
